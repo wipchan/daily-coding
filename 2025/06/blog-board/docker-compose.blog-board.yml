@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  app:
+    container_name: blogboard-app
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8081:8080"  # 로컬 8081 → 컨테이너 8080
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+    depends_on:
+      - blogboard-mysql
+      - blogboard-redis
+    networks:
+      - blog-network
+
+  blogboard-mysql:
+    image: mysql:8
+    container_name: blogboard-mysql
+    restart: unless-stopped
+    ports:
+      - "3308:3306"
+    environment:
+      MYSQL_DATABASE: blog_board
+      MYSQL_ROOT_PASSWORD: 1234
+      TZ: Asia/Seoul
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks:
+      - blog-network
+
+  blogboard-redis:
+    image: redis
+    container_name: blogboard-redis
+    restart: unless-stopped
+    ports:
+      - "6380:6379"
+    networks:
+      - blog-network
+
+  blogboard-nginx:
+    image: nginx:1.25
+    container_name: blogboard-nginx
+    restart: unless-stopped
+    ports:
+      - "8088:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - app
+    networks:
+      - blog-network
+
+volumes:
+  mysql-data:
+
+networks:
+  blog-network:
+    driver: bridge
